@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seawolf Autosolver</title>
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #d1d9e0;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #16a34a;
+      --success-bg: #f0fdf4;
+      --warning: #d97706;
+      --warning-bg: #fffbeb;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --muted: #64748b;
+      --text: #1e293b;
+      --radius: 8px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      padding: 1.5rem 1rem 3rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    header p { color: var(--muted); margin-top: 0.25rem; font-size: 0.875rem; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* Target ranges */
+    .ranges-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .range-group {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+    }
+
+    .range-group legend {
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 0 0.25rem;
+      color: var(--text);
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .range-row label { font-size: 0.8rem; color: var(--muted); width: 2.5rem; }
+
+    /* Inputs */
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 0.875rem;
+      color: var(--text);
+      background: #fff;
+      transition: border-color 0.15s, outline 0.15s;
+    }
+    input[type="number"]:focus, input[type="text"]:focus, select:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+      border-color: var(--primary);
+    }
+    input[type="number"] { width: 4.5rem; }
+
+    /* Species table */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    thead th {
+      text-align: left;
+      padding: 0.5rem 0.6rem;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      border-bottom: 2px solid var(--border);
+    }
+    tbody td {
+      padding: 0.35rem 0.4rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+
+    .row-num {
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+      width: 1.5rem;
+    }
+
+    td.col-name input { min-width: 110px; }
+    td.col-attr input { width: 3.5rem; }
+    td.col-trait select { min-width: 100px; }
+
+    /* Solve button */
+    .controls {
+      text-align: center;
+      margin: 1rem 0;
+    }
+    #solve-btn {
+      padding: 0.6rem 2.5rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #solve-btn:hover { background: var(--primary-hover); }
+
+    /* Error box */
+    #error-box {
+      display: none;
+      background: var(--danger-bg);
+      border: 1px solid #fca5a5;
+      border-radius: var(--radius);
+      padding: 0.75rem 1rem;
+      color: var(--danger);
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    #error-box ul { padding-left: 1.25rem; margin-top: 0.25rem; }
+
+    /* Results */
+    #results { display: none; }
+
+    .banner {
+      border-radius: var(--radius);
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.25rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .banner.tier1 { background: var(--success-bg); border: 1px solid #86efac; color: var(--success); }
+    .banner.tier2 { background: #eff6ff; border: 1px solid #93c5fd; color: #1d4ed8; }
+    .banner.tier3 { background: var(--warning-bg); border: 1px solid #fcd34d; color: var(--warning); }
+    .banner.tier4 { background: #fff7ed; border: 1px solid #fdba74; color: #c2410c; }
+    .banner.tier5 { background: #f0fdf4; border: 1px solid #86efac; color: #15803d; }
+    .banner.tier6 { background: #f8fafc; border: 1px solid var(--border); color: var(--muted); }
+    .banner.tier7,
+    .banner.tier8 { background: var(--danger-bg); border: 1px solid #fca5a5; color: var(--danger); }
+    .banner .sub { font-weight: 400; font-size: 0.82rem; margin-top: 0.2rem; color: inherit; opacity: 0.85; }
+
+    /* Species cards */
+    .species-cards {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .species-card {
+      flex: 1;
+      min-width: 150px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      background: #fafafa;
+    }
+    .species-card .s-name {
+      font-weight: 700;
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .species-card .s-attrs { font-size: 0.82rem; color: var(--text); line-height: 1.7; }
+    .trait-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 99px;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-desired { background: #dcfce7; color: #15803d; }
+    .badge-undesired { background: #fee2e2; color: #dc2626; }
+    .badge-none { background: #e2e8f0; color: #64748b; }
+
+    /* Averages table */
+    .avgs-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.25rem;
+      font-size: 0.875rem;
+    }
+    .avgs-table th {
+      text-align: left;
+      padding: 0.45rem 0.75rem;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .avgs-table td {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid var(--border);
+    }
+    .avgs-table td.status-ok { color: var(--success); font-weight: 700; font-size: 1rem; }
+    .avgs-table td.status-fail { color: var(--danger); font-weight: 700; font-size: 1rem; }
+    .avgs-table tr.row-ok td.col-avg { background: #f0fdf4; }
+    .avgs-table tr.row-fail td.col-avg { background: #fef2f2; }
+
+    /* Constraints */
+    .constraints { list-style: none; }
+    .constraints li {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      font-size: 0.875rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .constraints li:last-child { border-bottom: none; }
+    .c-icon { font-size: 1rem; font-weight: 700; min-width: 1.2rem; }
+    .c-ok .c-icon { color: var(--success); }
+    .c-fail-hard .c-icon { color: var(--danger); }
+    .c-fail-soft .c-icon { color: var(--warning); }
+    .c-label { flex: 1; }
+    .c-tag {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .tier-label {
+      text-align: right;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    @media (max-width: 600px) {
+      .ranges-grid { grid-template-columns: 1fr; }
+      .species-cards { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Seawolf Autosolver</h1>
+  <p>Select the best 3-species combination for your attributes and targets.</p>
+</header>
+
+<!-- Target Ranges -->
+<div class="card">
+  <h2>Target Ranges</h2>
+  <div class="ranges-grid">
+    <fieldset class="range-group">
+      <legend>Attribute 1</legend>
+      <div class="range-row"><label>Min</label><input type="number" id="t1min" min="1" max="10" step="1" placeholder="1"></div>
+      <div class="range-row"><label>Max</label><input type="number" id="t1max" min="1" max="10" step="1" placeholder="10"></div>
+    </fieldset>
+    <fieldset class="range-group">
+      <legend>Attribute 2</legend>
+      <div class="range-row"><label>Min</label><input type="number" id="t2min" min="1" max="10" step="1" placeholder="1"></div>
+      <div class="range-row"><label>Max</label><input type="number" id="t2max" min="1" max="10" step="1" placeholder="10"></div>
+    </fieldset>
+    <fieldset class="range-group">
+      <legend>Attribute 3</legend>
+      <div class="range-row"><label>Min</label><input type="number" id="t3min" min="1" max="10" step="1" placeholder="1"></div>
+      <div class="range-row"><label>Max</label><input type="number" id="t3max" min="1" max="10" step="1" placeholder="10"></div>
+    </fieldset>
+  </div>
+</div>
+
+<!-- Species Table -->
+<div class="card">
+  <h2>Species</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Attr 1</th>
+          <th>Attr 2</th>
+          <th>Attr 3</th>
+          <th>Trait</th>
+        </tr>
+      </thead>
+      <tbody id="species-body">
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <div id="error-box"></div>
+  <button id="solve-btn" onclick="solve()">Solve</button>
+</div>
+
+<!-- Results -->
+<div id="results" class="card">
+  <h2>Best Combination</h2>
+  <div id="result-inner"></div>
+</div>
+
+<script>
+  // ─── Build species table rows ────────────────────────────────────────────────
+  (function buildTable() {
+    const tbody = document.getElementById('species-body');
+    for (let i = 0; i < 10; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="row-num">${i + 1}</td>
+        <td class="col-name"><input type="text" placeholder="Species name" data-i="${i}" data-f="name"></td>
+        <td class="col-attr"><input type="number" min="1" max="10" step="1" placeholder="–" data-i="${i}" data-f="a1"></td>
+        <td class="col-attr"><input type="number" min="1" max="10" step="1" placeholder="–" data-i="${i}" data-f="a2"></td>
+        <td class="col-attr"><input type="number" min="1" max="10" step="1" placeholder="–" data-i="${i}" data-f="a3"></td>
+        <td class="col-trait">
+          <select data-i="${i}" data-f="trait">
+            <option value="none">None</option>
+            <option value="desired">Desired</option>
+            <option value="undesired">Undesired</option>
+          </select>
+        </td>`;
+      tbody.appendChild(tr);
+    }
+  })();
+
+  // ─── Read inputs ─────────────────────────────────────────────────────────────
+  function readSpecies() {
+    const rows = document.querySelectorAll('#species-body tr');
+    const result = [];
+    rows.forEach((tr, i) => {
+      const name = tr.querySelector('[data-f="name"]').value.trim();
+      const a1v = tr.querySelector('[data-f="a1"]').value;
+      const a2v = tr.querySelector('[data-f="a2"]').value;
+      const a3v = tr.querySelector('[data-f="a3"]').value;
+      const trait = tr.querySelector('[data-f="trait"]').value;
+
+      if (!name) return;
+      const a1 = parseFloat(a1v), a2 = parseFloat(a2v), a3 = parseFloat(a3v);
+      if (isNaN(a1) || isNaN(a2) || isNaN(a3)) return;
+      if (a1 < 1 || a1 > 10 || a2 < 1 || a2 > 10 || a3 < 1 || a3 > 10) return;
+
+      result.push({ index: i, name, a1, a2, a3, trait });
+    });
+    return result;
+  }
+
+  function readTargets() {
+    const vals = {};
+    const ids = ['t1min','t1max','t2min','t2max','t3min','t3max'];
+    for (const id of ids) {
+      const v = parseFloat(document.getElementById(id).value);
+      if (isNaN(v)) return null;
+      vals[id] = v;
+    }
+    return {
+      a1: { min: vals.t1min, max: vals.t1max },
+      a2: { min: vals.t2min, max: vals.t2max },
+      a3: { min: vals.t3min, max: vals.t3max },
+    };
+  }
+
+  // ─── Validate ─────────────────────────────────────────────────────────────────
+  function validateInputs(species, targets) {
+    const errors = [];
+    if (!targets) {
+      errors.push('Please fill in all 6 target range fields.');
+      return errors;
+    }
+    if (targets.a1.min > targets.a1.max) errors.push('Attribute 1: min must be ≤ max.');
+    if (targets.a2.min > targets.a2.max) errors.push('Attribute 2: min must be ≤ max.');
+    if (targets.a3.min > targets.a3.max) errors.push('Attribute 3: min must be ≤ max.');
+    if (species.length < 3) {
+      errors.push(`Found ${species.length} valid species (need at least 3). Fill in name and all three attributes for each row.`);
+    }
+    return errors;
+  }
+
+  // ─── Combinations ─────────────────────────────────────────────────────────────
+  function generateCombinations(species) {
+    const combos = [];
+    const n = species.length;
+    for (let i = 0; i < n - 2; i++)
+      for (let j = i + 1; j < n - 1; j++)
+        for (let k = j + 1; k < n; k++)
+          combos.push([species[i], species[j], species[k]]);
+    return combos;
+  }
+
+  // ─── Score ────────────────────────────────────────────────────────────────────
+  function clamp0(v) { return v < 0 ? 0 : v; }
+
+  function scoreCombination(combo, targets) {
+    const [a, b, c] = combo;
+    const avgs = {
+      a1: (a.a1 + b.a1 + c.a1) / 3,
+      a2: (a.a2 + b.a2 + c.a2) / 3,
+      a3: (a.a3 + b.a3 + c.a3) / 3,
+    };
+    const inRange = {
+      a1: avgs.a1 >= targets.a1.min && avgs.a1 <= targets.a1.max,
+      a2: avgs.a2 >= targets.a2.min && avgs.a2 <= targets.a2.max,
+      a3: avgs.a3 >= targets.a3.min && avgs.a3 <= targets.a3.max,
+    };
+    const allInRange = inRange.a1 && inRange.a2 && inRange.a3;
+    const hasDesired = combo.some(s => s.trait === 'desired');
+    const hasUndesired = combo.some(s => s.trait === 'undesired');
+
+    const deviation =
+      clamp0(targets.a1.min - avgs.a1) + clamp0(avgs.a1 - targets.a1.max) +
+      clamp0(targets.a2.min - avgs.a2) + clamp0(avgs.a2 - targets.a2.max) +
+      clamp0(targets.a3.min - avgs.a3) + clamp0(avgs.a3 - targets.a3.max);
+
+    // Tier lookup
+    let tier;
+    if      ( hasDesired && !hasUndesired &&  allInRange) tier = 1;
+    else if ( hasDesired && !hasUndesired && !allInRange) tier = 2;
+    else if ( hasDesired &&  hasUndesired &&  allInRange) tier = 3;
+    else if ( hasDesired &&  hasUndesired && !allInRange) tier = 4;
+    else if (!hasDesired && !hasUndesired &&  allInRange) tier = 5;
+    else if (!hasDesired && !hasUndesired && !allInRange) tier = 6;
+    else if (!hasDesired &&  hasUndesired &&  allInRange) tier = 7;
+    else                                                   tier = 8;
+
+    return { species: combo, avgs, inRange, allInRange, hasDesired, hasUndesired, deviation, tier };
+  }
+
+  // ─── Rank ─────────────────────────────────────────────────────────────────────
+  function rankCombinations(results) {
+    return results.slice().sort((a, b) =>
+      a.tier !== b.tier ? a.tier - b.tier : a.deviation - b.deviation
+    );
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────────
+  const TIER_BANNER = {
+    1: { cls: 'tier1', msg: 'All constraints met — this is the optimal combination.',       sub: 'Desired trait present · No undesired · All averages in range' },
+    2: { cls: 'tier2', msg: 'Desired trait present, no undesired traits.',                  sub: 'Some attribute averages are outside the target range.' },
+    3: { cls: 'tier3', msg: 'All averages in range, desired trait present.',                sub: 'Note: combination includes a species with an undesired trait.' },
+    4: { cls: 'tier4', msg: 'Desired trait present.',                                       sub: 'Includes an undesired trait · Some averages outside target range.' },
+    5: { cls: 'tier5', msg: 'All averages in range.',                                       sub: 'Warning: no desired trait found in this combination.' },
+    6: { cls: 'tier6', msg: 'Best available combination.',                                  sub: 'No desired trait · Some averages outside target range.' },
+    7: { cls: 'tier7', msg: 'Averages in range.',                                           sub: 'Warning: no desired trait · undesired trait present.' },
+    8: { cls: 'tier8', msg: 'No constraints fully satisfied.',                              sub: 'No desired trait · undesired trait present · averages outside range.' },
+  };
+
+  function badgeHtml(trait) {
+    if (trait === 'desired')   return '<span class="trait-badge badge-desired">Desired</span>';
+    if (trait === 'undesired') return '<span class="trait-badge badge-undesired">Undesired</span>';
+    return '<span class="trait-badge badge-none">None</span>';
+  }
+
+  function renderResults(best, targets) {
+    const el = document.getElementById('results');
+    el.style.display = 'block';
+
+    const b = TIER_BANNER[best.tier];
+    const cards = best.species.map(s => `
+      <div class="species-card">
+        ${badgeHtml(s.trait)}
+        <div class="s-name" title="${esc(s.name)}">${esc(s.name)}</div>
+        <div class="s-attrs">
+          Attr 1: <strong>${s.a1}</strong><br>
+          Attr 2: <strong>${s.a2}</strong><br>
+          Attr 3: <strong>${s.a3}</strong>
+        </div>
+      </div>`).join('');
+
+    const attrRows = ['a1','a2','a3'].map((k, i) => {
+      const avg = best.avgs[k];
+      const ok = best.inRange[k];
+      const t = targets[k];
+      return `
+        <tr class="${ok ? 'row-ok' : 'row-fail'}">
+          <td>Attribute ${i+1}</td>
+          <td class="col-avg">${avg.toFixed(2)}</td>
+          <td>${t.min} – ${t.max}</td>
+          <td class="${ok ? 'status-ok' : 'status-fail'}">${ok ? '✓' : '✗'}</td>
+        </tr>`;
+    }).join('');
+
+    const constraints = [
+      {
+        ok: best.hasDesired,
+        soft: false,
+        label: 'At least 1 species with desired trait',
+      },
+      {
+        ok: !best.hasUndesired,
+        soft: true,
+        label: 'No species with undesired trait',
+      },
+      {
+        ok: best.allInRange,
+        soft: false,
+        label: 'All attribute averages within target range',
+      },
+    ];
+
+    const constraintItems = constraints.map(c => {
+      const cls = c.ok ? 'c-ok' : (c.soft ? 'c-fail-soft' : 'c-fail-hard');
+      const icon = c.ok ? '✓' : '✗';
+      const tag = c.soft ? '<span class="c-tag">(preferred)</span>' : '<span class="c-tag">(required)</span>';
+      return `<li class="${cls}"><span class="c-icon">${icon}</span><span class="c-label">${c.label}</span>${tag}</li>`;
+    }).join('');
+
+    document.getElementById('result-inner').innerHTML = `
+      <div class="banner ${b.cls}">
+        ${esc(b.msg)}
+        <div class="sub">${esc(b.sub)}</div>
+      </div>
+      <div class="species-cards">${cards}</div>
+      <table class="avgs-table">
+        <thead>
+          <tr><th>Attribute</th><th>Average</th><th>Target Range</th><th>Status</th></tr>
+        </thead>
+        <tbody>${attrRows}</tbody>
+      </table>
+      <ul class="constraints">${constraintItems}</ul>
+      <div class="tier-label">Result quality: Tier ${best.tier} of 8${best.tier === 1 ? ' (best possible)' : ''}</div>
+    `;
+  }
+
+  function renderError(messages) {
+    const box = document.getElementById('error-box');
+    box.style.display = 'block';
+    if (messages.length === 1) {
+      box.innerHTML = messages[0];
+    } else {
+      box.innerHTML = '<ul>' + messages.map(m => `<li>${esc(m)}</li>`).join('') + '</ul>';
+    }
+    document.getElementById('results').style.display = 'none';
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  // ─── Main solve ───────────────────────────────────────────────────────────────
+  function solve() {
+    document.getElementById('error-box').style.display = 'none';
+
+    const species = readSpecies();
+    const targets = readTargets();
+    const errors = validateInputs(species, targets);
+
+    if (errors.length) {
+      renderError(errors);
+      return;
+    }
+
+    const combos = generateCombinations(species);
+    const scored = combos.map(c => scoreCombination(c, targets));
+    const ranked = rankCombinations(scored);
+    renderResults(ranked[0], targets);
+  }
+</script>
+</body>
+</html>
