@@ -284,6 +284,53 @@
       margin-top: 0.75rem;
     }
 
+    /* Donate */
+    .donate {
+      text-align: center;
+      margin-top: 2rem;
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+    .donate p { margin-bottom: 0.75rem; }
+    .donate-addresses {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .donate-address {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      min-width: 0;
+    }
+    .donate-address .coin {
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+    .donate-address .coin.eth { color: #6366f1; }
+    .donate-address .coin.btc { color: #f59e0b; }
+    .donate-address .addr {
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+      font-size: 0.78rem;
+      color: var(--text);
+      word-break: break-all;
+      cursor: pointer;
+      user-select: all;
+    }
+    .donate-address .copy-hint {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
     @media (max-width: 600px) {
       .ranges-grid { grid-template-columns: 1fr; }
       .species-cards { flex-direction: column; }
@@ -610,5 +657,22 @@
     renderResults(ranked[0], targets);
   }
 </script>
+
+<div class="donate">
+  <p>This tool is free to use. If it saved you some time, consider a small donation.</p>
+  <div class="donate-addresses">
+    <div class="donate-address">
+      <div class="coin eth">Ethereum</div>
+      <div class="addr" title="Click to select">0x741DA088450ed57cA6004D5653142164C6674517</div>
+      <div class="copy-hint">Click address to select, then copy</div>
+    </div>
+    <div class="donate-address">
+      <div class="coin btc">Bitcoin</div>
+      <div class="addr" title="Click to select">bc1q6cn9fttcgxkf5tu94hehd9yhuh7fd4r35qmffs</div>
+      <div class="copy-hint">Click address to select, then copy</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
